@@ -190,6 +190,12 @@
                             class="w-full bg-slate-900 border border-slate-700 p-4 pl-12 rounded-2xl outline-none text-cyan-400 font-bold text-sm">
                     </div>
                 </div>
+                <!-- Keep input -->
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-600">🔒 KEEP PLT</span>
+                    <input type="number" id="input-keep-palet" placeholder="0"
+                        class="w-full bg-amber-500/5 border border-amber-500/30 p-4 pl-24 rounded-2xl outline-none text-amber-400 font-bold text-sm">
+                </div>
                 <button onclick="addStock()"
                     class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-transform">
                     Update Stok Lokal
@@ -254,7 +260,7 @@
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3KnuKUBz65jlfv37oM4azcJrYwtWdOme3kqnEqJQNQGfwXZpeckDukR7a9opEksMhcQ/exec";
 const PCS_PER_PALET = 30;
-const KEY = 'zenith_v3';
+const KEY = 'zenith_v4';
 
 /* ---------- STATE ---------- */
 let inventory = {};
@@ -324,36 +330,33 @@ function closeDangdae() {
 */
 function getEffectiveStock(typeName, lineId) {
     if (!typeName || !inventory[typeName]) return 0;
-    const total = inventory[typeName].totalPcs;
+    const data = inventory[typeName];
+    const keepPcs = data.keepPcs || 0;
+    const usable = Math.max(0, data.totalPcs - keepPcs);
     // Hitung berapa line yang memakai tipe ini sebagai Running
     const usersRunning = lineData.filter(l => l.activeType === typeName).length;
     if (usersRunning >= 2) {
-        // Lihat apakah line ini adalah salah satu pengguna Running
         const myLine = lineData.find(l => l.id === lineId);
         if (myLine && myLine.activeType === typeName) {
-            return Math.floor(total / usersRunning);
+            return Math.floor(usable / usersRunning);
         }
     }
-    // Untuk next1/next2: hitung siapa yg pakai tipe ini (next1 atau next2 dari line lain)
-    // Jika 2 line sama-sama next tipe yang sama, bagi dua
-    const usersNext = lineData.filter(l =>
-        l.id !== lineId && (l.activeType === typeName || l.nextType1 === typeName || l.nextType2 === typeName)
-    ).length;
-    // Hanya bagi jika RUNNING-nya sama tipe
     const runnersCount = lineData.filter(l => l.activeType === typeName).length;
-    if (runnersCount >= 2) return Math.floor(total / runnersCount);
-    return total;
+    if (runnersCount >= 2) return Math.floor(usable / runnersCount);
+    return usable;
 }
 
 /* Hitung stok antrian (activeType + next1 + next2) untuk satu line,
-   sudah memperhitungkan pembagian jika shared. */
+   sudah memperhitungkan pembagian jika shared dan dikurangi keep. */
 function getStocksForLine(line) {
     function stockOf(typeName) {
         if (!typeName || !inventory[typeName]) return 0;
-        const total = inventory[typeName].totalPcs;
+        const data = inventory[typeName];
+        const keepPcs = data.keepPcs || 0;
+        const usable = Math.max(0, data.totalPcs - keepPcs);
         const runners = lineData.filter(l => l.activeType === typeName).length;
-        if (runners >= 2) return Math.floor(total / runners);
-        return total;
+        if (runners >= 2) return Math.floor(usable / runners);
+        return usable;
     }
     return [
         { type: line.activeType, amount: stockOf(line.activeType) },
@@ -385,15 +388,44 @@ function addStock() {
     const name  = document.getElementById('wheel-name').value.trim().toUpperCase();
     const p     = parseFloat(document.getElementById('input-palet').value) || 0;
     const e     = parseFloat(document.getElementById('input-extra-pcs').value) || 0;
+    const kp    = parseFloat(document.getElementById('input-keep-palet').value) || 0;
     const total = (p * PCS_PER_PALET) + e;
     if (!name || total <= 0) { showToast('Isi nama & jumlah stok!', true); return; }
-    if (!inventory[name]) inventory[name] = { totalPcs: 0 };
+    if (!inventory[name]) inventory[name] = { totalPcs: 0, keepPcs: 0 };
     inventory[name].totalPcs += total;
+    inventory[name].keepPcs = (inventory[name].keepPcs || 0) + (kp * PCS_PER_PALET);
     document.getElementById('wheel-name').value = '';
     document.getElementById('input-palet').value = '';
     document.getElementById('input-extra-pcs').value = '';
+    document.getElementById('input-keep-palet').value = '';
     save(); renderAll();
     showToast(`✔ Stok ${name} diupdate`);
+}
+function releaseKeep(name) {
+    const data = inventory[name];
+    if (!data || !data.keepPcs) { showToast('Tidak ada stok keep!', true); return; }
+    const keepPalet = Math.ceil(data.keepPcs / PCS_PER_PALET);
+    const v = prompt(`Keep ${name}: ${data.keepPcs} pcs (${keepPalet} palet)\nLepas berapa palet? (max ${keepPalet})`, keepPalet);
+    if (v === null) return;
+    const relPalet = parseInt(v);
+    if (isNaN(relPalet) || relPalet <= 0) { showToast('Jumlah tidak valid!', true); return; }
+    const relPcs = relPalet * PCS_PER_PALET;
+    const actualRel = Math.min(relPcs, data.keepPcs);
+    data.keepPcs = Math.max(0, data.keepPcs - actualRel);
+    save(); renderAll();
+    showToast(`Rilis ${actualRel} pcs dari keep ${name}`);
+}
+function editKeepPcs(name) {
+    const data = inventory[name];
+    const cur = data?.keepPcs || 0;
+    const v = prompt(`Set KEEP palet untuk ${name}:\nKeep saat ini: ${cur} pcs (${Math.ceil(cur/PCS_PER_PALET)} palet)`, Math.ceil(cur/PCS_PER_PALET));
+    if (v === null) return;
+    const n = parseInt(v);
+    if (isNaN(n) || n < 0) { showToast('Nilai tidak valid!', true); return; }
+    if (!inventory[name]) inventory[name] = { totalPcs: 0, keepPcs: 0 };
+    inventory[name].keepPcs = n * PCS_PER_PALET;
+    save(); renderAll();
+    showToast(`${name} keep → ${n} palet`);
 }
 function editStockPcs(name) {
     const v = prompt(`Edit total PCS untuk ${name}:`, inventory[name]?.totalPcs ?? 0);
@@ -484,20 +516,49 @@ function renderInventory() {
         return;
     }
     c.innerHTML = entries.map(([name, data]) => {
-        // Siapa pakai tipe ini?
         const users = lineData.filter(l => l.activeType===name||l.nextType1===name||l.nextType2===name)
             .map(l=>`L0${l.id}`).join(', ');
+        const keepPcs  = data.keepPcs || 0;
+        const keepPalet = Math.round(keepPcs / PCS_PER_PALET);
+        const usablePcs = Math.max(0, data.totalPcs - keepPcs);
+        const totalPalet = Math.floor(data.totalPcs / PCS_PER_PALET);
+        const usablePalet = Math.floor(usablePcs / PCS_PER_PALET);
+        const hasKeep = keepPcs > 0;
         return `
-        <div class="inv-card">
+        <div class="inv-card${hasKeep ? ' border border-amber-500/30' : ''}">
             <p class="text-[8px] font-black text-slate-500 uppercase truncate mb-0.5">${name}</p>
             ${users ? `<p class="text-[7px] text-amber-400 font-bold mb-1">▶ ${users}</p>` : '<p class="text-[7px] text-slate-600 mb-1">—</p>'}
-            <div class="flex items-baseline gap-1 mb-3">
-                <p class="text-xl font-black text-blue-400">${data.totalPcs}</p>
+            
+            <!-- Total stok -->
+            <div class="flex items-baseline gap-1 mb-1">
+                <p class="text-xl font-black text-blue-400">${usablePcs}</p>
                 <span class="text-[8px] font-bold text-slate-600 uppercase">Pcs</span>
+                <span class="text-[7px] text-slate-600">(${usablePalet} plt)</span>
             </div>
+
+            <!-- Keep badge -->
+            ${hasKeep ? `
+            <div class="bg-amber-500/10 border border-amber-500/25 rounded-xl px-2 py-1.5 mb-2">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[7px] font-black uppercase text-amber-400 tracking-wider">🔒 KEEP</p>
+                        <p class="text-[9px] font-black text-amber-300">${keepPalet} Palet <span class="text-[7px] font-bold text-amber-500/70">(${keepPcs} pcs)</span></p>
+                    </div>
+                    <button onclick="releaseKeep('${name}')"
+                        class="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[7px] font-black uppercase px-2 py-1 rounded-lg active:scale-95 transition-all">
+                        Rilis
+                    </button>
+                </div>
+                <div class="mt-1 pt-1 border-t border-amber-500/15">
+                    <p class="text-[7px] text-slate-500 font-bold">Total gudang: <span class="text-slate-400">${totalPalet} plt (${data.totalPcs} pcs)</span></p>
+                </div>
+            </div>` : ''}
+
             <div class="flex gap-1.5">
                 <button onclick="editStockPcs('${name}')"
                     class="flex-1 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase py-1.5 rounded-lg active:scale-95 transition-transform">Edit</button>
+                <button onclick="editKeepPcs('${name}')"
+                    class="flex-1 bg-amber-500/10 text-amber-400 text-[8px] font-black uppercase py-1.5 rounded-lg active:scale-95 transition-transform">Keep</button>
                 <button onclick="deleteStock('${name}')"
                     class="flex-1 bg-red-500/10 text-red-400 text-[8px] font-black uppercase py-1.5 rounded-lg active:scale-95 transition-transform">Hapus</button>
             </div>
@@ -507,13 +568,31 @@ function renderInventory() {
 
 /* ---------- CUTI PAKSA (manual dangdae walaupun stok masih ada) ---------- */
 function setCutiDangdae(lineId, typeName) {
-    const line = lineData[lineId - 1];
+    const line  = lineData[lineId - 1];
     if (!line.forcedDangdae) line.forcedDangdae = {};
-    const nowH = new Date().getHours();
-    line.forcedDangdae[typeName] = nowH + 1; // berlaku mulai jam berikutnya
-    save();
-    renderAll();
-    showToast(`Cuti dangdae ${typeName} → jam ${String(nowH+1).padStart(2,'0')}:00`);
+    const hours = getShiftHours();
+    const nowH  = new Date().getHours();
+
+    // Buat daftar jam yang bisa dipilih (jam berikutnya sampai akhir shift)
+    const available = hours.filter(h => h !== nowH);
+    const opts = available.map(h => {
+        const label = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
+        return `${h} → ${label}`;
+    }).join('\n');
+
+    const defaultH = nowH + 1 <= hours[hours.length-1] ? nowH + 1 : hours[1] || hours[0];
+    const curSetting = line.forcedDangdae[typeName];
+    const v = prompt(
+        `Atur jam CUT untuk ${typeName} (Line 0${lineId}):\n\nPilih jam mulai cut:\n${opts}\n\n(Ketik angka jamnya, contoh: 14 untuk jam 14:00)`,
+        curSetting !== undefined ? curSetting : defaultH
+    );
+    if (v === null) return;
+    const h = parseInt(v);
+    if (isNaN(h) || !hours.includes(h)) { showToast('Jam tidak valid!', true); return; }
+    line.forcedDangdae[typeName] = h;
+    save(); renderAll();
+    const label = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
+    showToast(`Cut ${typeName} → jam ${label}`);
 }
 function clearCuti(lineId, typeName) {
     const line = lineData[lineId - 1];
@@ -623,10 +702,10 @@ function buildDangdaeBanners(line) {
                         <p class="text-[8px] text-emerald-300/70 font-bold mt-0.5">${line.activeType} cukup sepanjang shift</p>
                     </div>
                 </div>
-                ${line.nextType1 ? `
+        ${line.nextType1 ? `
                 <button onclick="setCutiDangdae(${line.id},'${line.activeType}')"
                     class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all">
-                    Cuti ↕
+                    ⏱ Set Cut
                 </button>` : ''}
             </div>
         </div>`;
@@ -655,13 +734,19 @@ function buildDangdaeBanners(line) {
         const cutiBtn = (!isPast && !isHabis && !isCuti && ev.toType !== 'HABIS')
             ? `<button onclick="setCutiDangdae(${line.id},'${ev.fromType}')"
                 class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all whitespace-nowrap">
-                Cuti ↕
+                ⏱ Set Cut
                </button>`
             : isCuti && !isPast
-                ? `<button onclick="clearCuti(${line.id},'${ev.fromType}')"
-                    class="shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all">
-                    Batal
-                   </button>`
+                ? `<div class="flex flex-col gap-1">
+                    <button onclick="setCutiDangdae(${line.id},'${ev.fromType}')"
+                        class="shrink-0 bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[8px] font-black uppercase px-2.5 py-1 rounded-lg active:scale-95 transition-all">
+                        ✏️ Edit Jam
+                    </button>
+                    <button onclick="clearCuti(${line.id},'${ev.fromType}')"
+                        class="shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-[8px] font-black uppercase px-2.5 py-1 rounded-lg active:scale-95 transition-all">
+                        ✖ Batal
+                    </button>
+                   </div>`
                 : '';
 
         return `
