@@ -129,7 +129,7 @@
 <div id="dangdae-overlay">
     <div class="dangdae-card" id="dangdae-card">
         <div class="text-5xl mb-2 blink">⚠️</div>
-        <p class="text-[10px] font-black uppercase tracking-[3px] text-amber-400 mb-1">DANGDAE!</p>
+        <p class="text-[10px] font-black uppercase tracking-[3px] text-amber-400 mb-1">DANGGAE!</p>
         <p class="text-[9px] text-slate-400 font-bold mb-4">Pergantian Tipe Velg</p>
         <p id="dd-line" class="text-xs font-black text-white mb-3">Line —</p>
         <div class="flex items-center justify-center gap-3 mb-4">
@@ -259,10 +259,10 @@ const KEY = 'zenith_v3';
 /* ---------- STATE ---------- */
 let inventory = {};
 let lineData = [
-    { id:1, activeType:'', nextType1:'', nextType2:'', color:'blue',   hourlyTargets:{} },
-    { id:2, activeType:'', nextType1:'', nextType2:'', color:'cyan',   hourlyTargets:{} },
-    { id:3, activeType:'', nextType1:'', nextType2:'', color:'indigo', hourlyTargets:{} },
-    { id:4, activeType:'', nextType1:'', nextType2:'', color:'purple', hourlyTargets:{} },
+    { id:1, activeType:'', nextType1:'', nextType2:'', color:'blue',   hourlyTargets:{}, forcedDangdae:{} },
+    { id:2, activeType:'', nextType1:'', nextType2:'', color:'cyan',   hourlyTargets:{}, forcedDangdae:{} },
+    { id:3, activeType:'', nextType1:'', nextType2:'', color:'indigo', hourlyTargets:{}, forcedDangdae:{} },
+    { id:4, activeType:'', nextType1:'', nextType2:'', color:'purple', hourlyTargets:{}, forcedDangdae:{} },
 ];
 
 /* ---------- PERSIST ---------- */
@@ -279,7 +279,8 @@ function load() {
             lineData[i].activeType    = s.activeType    || '';
             lineData[i].nextType1     = s.nextType1     || '';
             lineData[i].nextType2     = s.nextType2     || '';
-            lineData[i].hourlyTargets = s.hourlyTargets || {};
+            lineData[i].hourlyTargets  = s.hourlyTargets  || {};
+            lineData[i].forcedDangdae  = s.forcedDangdae  || {};
         });
     } catch(e){}
 }
@@ -418,7 +419,7 @@ function deleteStock(name) {
 function clearAllData() {
     if (!confirm('Hapus semua data produksi?')) return;
     inventory = {};
-    lineData.forEach(l=>{ l.activeType=''; l.nextType1=''; l.nextType2=''; l.hourlyTargets={}; });
+    lineData.forEach(l=>{ l.activeType=''; l.nextType1=''; l.nextType2=''; l.hourlyTargets={}; l.forcedDangdae={}; });
     save(); renderAll();
 }
 
@@ -504,45 +505,188 @@ function renderInventory() {
     }).join('');
 }
 
+/* ---------- CUTI PAKSA (manual dangdae walaupun stok masih ada) ---------- */
+function setCutiDangdae(lineId, typeName) {
+    const line = lineData[lineId - 1];
+    if (!line.forcedDangdae) line.forcedDangdae = {};
+    const nowH = new Date().getHours();
+    line.forcedDangdae[typeName] = nowH + 1; // berlaku mulai jam berikutnya
+    save();
+    renderAll();
+    showToast(`Cuti dangdae ${typeName} → jam ${String(nowH+1).padStart(2,'0')}:00`);
+}
+function clearCuti(lineId, typeName) {
+    const line = lineData[lineId - 1];
+    if (line.forcedDangdae) delete line.forcedDangdae[typeName];
+    save(); renderAll();
+    showToast(`Cuti ${typeName} dibatalkan`);
+}
+
 /* ---------- HITUNG ESTIMASI DANGDAE ----------
-   Simulasi konsumsi stok jam per jam, cari jam pertama saat tipe berubah.
-   Return array of { fromType, toType, hour, timeStr } */
+   Logika:
+   - Jam dangdae = jam stok tipe aktif HABIS (jam berikutnya setelah stok = 0)
+   - Jika ada cuti paksa (forcedDangdae), dangdae dipaksa di jam tersebut
+   - Sisa stok tipe yg dicuti dibebaskan (dialihkan ke line lain / dilepas)
+   Return array of { fromType, toType, hour, timeStr, sisa, isCuti }
+*/
 function calcDangdaeEstimate(line) {
     if (!line.activeType) return [];
 
-    const hours  = getShiftHours();
-    let stocks   = getStocksForLine(line).map(s => ({ ...s }));
-    let prevType = null;
+    const hours     = getShiftHours();
+    const forced    = line.forcedDangdae || {};
+    const typeQueue = [line.activeType, line.nextType1, line.nextType2].filter(Boolean);
+    // Deep-copy stok per tipe untuk simulasi
+    const stockMap  = {};
+    getStocksForLine(line).forEach(s => { if (s.type) stockMap[s.type] = s.amount; });
+
     const events = [];
+    let qi = 0; // index ke typeQueue yang sedang jalan
 
-    for (const h of hours) {
-        const target = line.hourlyTargets[h] !== undefined ? line.hourlyTargets[h] : getDefaultTarget(h);
+    for (let hi = 0; hi < hours.length; hi++) {
+        if (qi >= typeQueue.length) break;
+        const h       = hours[hi];
+        const curType = typeQueue[qi];
+        const target  = line.hourlyTargets[h] !== undefined ? line.hourlyTargets[h] : getDefaultTarget(h);
+        const timeStr = h === 19 ? '19:10' : h === 7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
 
-        // Tipe dominan di jam ini (sebelum dikonsumsi)
-        let typeNow = 'HABIS';
-        for (const s of stocks) {
-            if (s.amount > 0 && s.type) { typeNow = s.type; break; }
-        }
-
-        // Deteksi pergantian tipe
-        if (prevType !== null && typeNow !== prevType) {
-            const timeStr = h === 19 ? '19:10' : h === 7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
-            events.push({ fromType: prevType, toType: typeNow, hour: h, timeStr });
-        }
-        prevType = typeNow;
-
-        // Konsumsi stok
-        let needed = target;
-        for (const s of stocks) {
-            if (s.amount > 0 && s.type) {
-                const taken = Math.min(s.amount, needed);
-                s.amount -= taken;
-                needed   -= taken;
-                if (needed <= 0) break;
+        // --- CUTI PAKSA ---
+        if (forced[curType] !== undefined && h >= forced[curType]) {
+            const nextType = typeQueue[qi + 1] || 'HABIS';
+            const sisa     = stockMap[curType] || 0;
+            events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa, isCuti: true });
+            stockMap[curType] = 0; // sisa dibebaskan
+            qi++;
+            // Konsumsi jam ini dari tipe berikutnya
+            if (qi < typeQueue.length) {
+                const nt = typeQueue[qi];
+                stockMap[nt] = Math.max(0, (stockMap[nt] || 0) - target);
             }
+            continue;
+        }
+
+        const curStok = stockMap[curType] || 0;
+
+        // --- STOK SUDAH 0 SEBELUM JAM INI ---
+        if (curStok <= 0) {
+            const nextType = typeQueue[qi + 1] || 'HABIS';
+            // Hindari duplikat event
+            if (!events.length || events[events.length-1].fromType !== curType) {
+                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false });
+            }
+            qi++;
+            if (qi < typeQueue.length) {
+                const nt = typeQueue[qi];
+                stockMap[nt] = Math.max(0, (stockMap[nt] || 0) - target);
+            }
+            continue;
+        }
+
+        // --- KONSUMSI NORMAL ---
+        const taken = Math.min(curStok, target);
+        stockMap[curType] = curStok - taken;
+
+        // Jika stok habis TEPAT jam ini → dangdae mulai jam berikutnya
+        if (stockMap[curType] === 0) {
+            const nextH    = hours[hi + 1];
+            const nextType = typeQueue[qi + 1] || 'HABIS';
+            if (nextH !== undefined) {
+                const nStr = nextH === 19 ? '19:10' : nextH === 7 ? '07:10' : `${String(nextH).padStart(2,'0')}:00`;
+                events.push({ fromType: curType, toType: nextType, hour: nextH, timeStr: nStr, sisa: 0, isCuti: false });
+            } else {
+                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false });
+            }
+            qi++;
         }
     }
     return events;
+}
+
+/* ---------- BUILD DANGDAE BANNERS ---------- */
+function buildDangdaeBanners(line) {
+    if (!line.activeType) return '';
+
+    const events = calcDangdaeEstimate(line);
+    const nowH   = new Date().getHours();
+    const forced = line.forcedDangdae || {};
+
+    // Banner "Stok Aman" jika tidak ada pergantian sama sekali
+    if (!events.length) {
+        const totalStok = getStocksForLine(line).reduce((s,x)=>s+x.amount,0);
+        const hasNext   = line.nextType1 || line.nextType2;
+        return `
+        <div class="dangdae-banner mb-4">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">✅</span>
+                    <div>
+                        <p class="text-[9px] font-black uppercase text-emerald-400 tracking-widest">Stok Aman</p>
+                        <p class="text-[8px] text-emerald-300/70 font-bold mt-0.5">${line.activeType} cukup sepanjang shift</p>
+                    </div>
+                </div>
+                ${line.nextType1 ? `
+                <button onclick="setCutiDangdae(${line.id},'${line.activeType}')"
+                    class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all">
+                    Cuti ↕
+                </button>` : ''}
+            </div>
+        </div>`;
+    }
+
+    return events.map((ev) => {
+        const isPast   = ev.hour < nowH;
+        const isHabis  = ev.toType === 'HABIS';
+        const isCuti   = ev.isCuti;
+
+        const bannerCls = isHabis ? 'empty' : isPast ? '' : isCuti ? 'warn' : '';
+        const icon      = isHabis ? '🔴' : isPast ? '🔵' : isCuti ? '⏭️' : '🟢';
+        const lColor    = isHabis ? 'text-red-400'    : isPast ? 'text-blue-400'   : isCuti ? 'text-amber-400' : 'text-emerald-400';
+        const tag       = isPast ? 'Sudah Dangdae' : isCuti ? 'Cuti Paksa' : 'Dangdae';
+
+        const fromBadge = `<span class="inline-block bg-slate-700 text-slate-100 text-[9px] font-black px-2 py-0.5 rounded-lg">${ev.fromType}</span>`;
+        const toBadge   = isHabis
+            ? `<span class="inline-block bg-red-900/60 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-lg">HABIS</span>`
+            : `<span class="inline-block bg-emerald-900/60 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-lg">${ev.toType}</span>`;
+
+        const sisaNote = ev.sisa > 0
+            ? `<span class="text-[7px] text-amber-400 font-bold ml-1">(sisa ${ev.sisa} pcs dialihkan)</span>`
+            : '';
+
+        // Tombol Cuti hanya muncul jika belum cuti, belum past, bukan habis, ada next
+        const cutiBtn = (!isPast && !isHabis && !isCuti && ev.toType !== 'HABIS')
+            ? `<button onclick="setCutiDangdae(${line.id},'${ev.fromType}')"
+                class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all whitespace-nowrap">
+                Cuti ↕
+               </button>`
+            : isCuti && !isPast
+                ? `<button onclick="clearCuti(${line.id},'${ev.fromType}')"
+                    class="shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all">
+                    Batal
+                   </button>`
+                : '';
+
+        return `
+        <div class="dangdae-banner ${bannerCls} mb-3">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-start gap-2 min-w-0">
+                    <span class="text-lg shrink-0 mt-0.5">${icon}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                            <span class="text-[9px] font-black uppercase ${lColor} tracking-wider">${tag}</span>
+                            <span class="text-[9px] font-black text-white bg-white/10 px-2 py-0.5 rounded-lg">Jam ${ev.timeStr}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            ${fromBadge}
+                            <svg class="w-3 h-3 ${isHabis?'text-red-400':'text-emerald-400'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                            ${toBadge}${sisaNote}
+                        </div>
+                    </div>
+                </div>
+                ${cutiBtn}
+            </div>
+        </div>`;
+    }).join('');
 }
 
 /* ---------- RENDER LINES ----------
@@ -624,79 +768,6 @@ function renderLines() {
         </div>
         ${buildDangdaeBanners(line)}`;
     });
-}
-
-/* ---------- BUILD DANGDAE BANNERS ---------- */
-function buildDangdaeBanners(line) {
-    if (!line.activeType) return '';
-
-    const events = calcDangdaeEstimate(line);
-    const nowH   = new Date().getHours();
-    const nowM   = new Date().getMinutes();
-
-    if (!events.length) {
-        // Cek apakah stok cukup sepanjang shift (tidak ada pergantian & tidak habis)
-        const hours  = getShiftHours();
-        let stocks   = getStocksForLine(line).map(s => ({ ...s }));
-        let totalEnd = 0;
-        for (const h of hours) {
-            const target = line.hourlyTargets[h] !== undefined ? line.hourlyTargets[h] : getDefaultTarget(h);
-            let needed = target;
-            for (const s of stocks) {
-                if (s.amount > 0 && s.type) {
-                    const taken = Math.min(s.amount, needed);
-                    s.amount -= taken; needed -= taken;
-                    if (needed <= 0) break;
-                }
-            }
-        }
-        totalEnd = stocks.reduce((s,x)=>s+x.amount, 0);
-        if (totalEnd >= 0 && !line.nextType1) {
-            return `<div class="dangdae-banner mb-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">✅</span>
-                    <div>
-                        <p class="text-[9px] font-black uppercase text-emerald-400 tracking-widest">Stok Aman</p>
-                        <p class="text-[8px] text-emerald-300/70 font-bold mt-0.5">${line.activeType} cukup sepanjang shift ini</p>
-                    </div>
-                </div>
-            </div>`;
-        }
-        return '';
-    }
-
-    return events.map((ev, idx) => {
-        // Apakah event ini sudah lewat?
-        const isPast = ev.hour < nowH || (ev.hour === nowH && nowM > 30);
-        const isHabis = ev.toType === 'HABIS';
-        const bannerClass = isHabis ? 'empty' : isPast ? '' : idx === 0 ? '' : 'warn';
-        const icon = isHabis ? '🔴' : isPast ? '✅' : '🟢';
-        const labelColor = isHabis ? 'text-red-400' : 'text-emerald-400';
-        const subColor   = isHabis ? 'text-red-300/70' : 'text-emerald-300/70';
-        const badgeFrom  = `<span class="inline-block bg-slate-700 text-slate-200 text-[9px] font-black px-2 py-0.5 rounded-lg">${ev.fromType}</span>`;
-        const badgeTo    = isHabis
-            ? `<span class="inline-block bg-red-900/60 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-lg">HABIS</span>`
-            : `<span class="inline-block bg-emerald-900/60 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-lg">${ev.toType}</span>`;
-
-        return `<div class="dangdae-banner ${bannerClass} mb-3">
-            <div class="flex items-center gap-3">
-                <span class="text-xl shrink-0">${icon}</span>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <p class="text-[9px] font-black uppercase ${labelColor} tracking-wider">Dangdae</p>
-                        <span class="text-[8px] font-black text-white bg-white/10 px-2 py-0.5 rounded-lg">Jam ${ev.timeStr}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        ${badgeFrom}
-                        <svg class="w-3 h-3 ${isHabis?'text-red-400':'text-emerald-400'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                        </svg>
-                        ${badgeTo}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
 }
 
 /* ---------- BUILD ROWS — inti kalkulasi ---------- */
@@ -785,7 +856,7 @@ function updateClock() {
     document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID',{hour12:false});
     const h=now.getHours(), m=now.getMinutes();
     const shift = ((h>=8&&h<19)||(h===19&&m<=10)) ? 'SHIFT 1' : 'SHIFT 2';
-    document.getElementById('shift-indicator').innerText = `Machining | ${shift}`;
+    document.getElementById('shift-indicator').innerText = `MACHINING | ${shift}`;
 }
 
 /* ---------- INIT ---------- */
