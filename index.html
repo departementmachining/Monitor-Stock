@@ -12,22 +12,14 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #e2e8f0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(30,41,59,0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
         .glass-dark { background: rgba(15,23,42,0.8); backdrop-filter: blur(10px); }
-
-        /* NAV */
         .nav-item { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); color: #64748b; }
         .nav-item.active { color: #3b82f6; transform: translateY(-4px); }
         .nav-item.active .nav-icon { background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.5); }
-
-        /* PAGES */
         .page { display: none; height: calc(100vh - 140px); overflow-y: auto; padding-bottom: 60px; }
         .page.active { display: block; animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 2px; }
         ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 99px; }
-
-        /* TOAST */
         #toast {
             position: fixed; top: 20px; left: 50%;
             transform: translateX(-50%) translateY(-10px) scale(0.95);
@@ -37,6 +29,26 @@
             opacity: 0; pointer-events: none; white-space: nowrap;
         }
         #toast.show { opacity:1; transform: translateX(-50%) translateY(0) scale(1); }
+
+        /* STOP JAM OVERLAY */
+        #stopjam-overlay {
+            position: fixed; inset: 0; z-index: 88888;
+            display: flex; align-items: flex-end; justify-content: center;
+            background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        #stopjam-overlay.show { opacity:1; pointer-events: all; }
+        .stopjam-sheet {
+            background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 2rem 2rem 0 0;
+            width: 100%; max-width: 480px;
+            padding: 1.5rem 1.5rem 2.5rem;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.34,1.1,0.64,1);
+        }
+        #stopjam-overlay.show .stopjam-sheet { transform: translateY(0); }
 
         /* DANGDAE OVERLAY */
         #dangdae-overlay {
@@ -61,16 +73,12 @@
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
         .blink { animation: blink 0.8s ease-in-out infinite; }
-
-        /* TYPE SELECTOR */
         .type-selector {
             background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.1);
             font-size: 10px; font-weight: 700; color: #fff; outline: none;
             width: 100%; padding: 10px 2px; border-radius: 10px;
             appearance: none; -webkit-appearance: none; text-align: center;
         }
-
-        /* TARGET INPUT — kunci: tidak pakai onchange, pakai onblur agar tidak re-render saat ketik */
         .target-inp {
             background: rgba(30,58,138,0.25);
             border: 1px solid rgba(59,130,246,0.35);
@@ -82,26 +90,17 @@
         .target-inp::-webkit-outer-spin-button,
         .target-inp::-webkit-inner-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
-
-        /* INVENTORY CARD */
         .inv-card {
             background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.06);
             border-radius: 1rem; padding: 1rem; transition: border-color 0.2s;
         }
         .inv-card:active { border-color: rgba(59,130,246,0.4); }
-
-        /* PUSH BUTTON */
         .btn-push { background: linear-gradient(135deg,#10b981,#059669); box-shadow: 0 8px 20px -6px rgba(16,185,129,0.35); }
-
-        /* ROW HIGHLIGHT */
         .row-now { background: rgba(59,130,246,0.08); }
         .row-switch { background: rgba(245,158,11,0.07); }
-
-        /* DANGDAE ESTIMATE BANNER */
+        .row-stop { background: rgba(239,68,68,0.06); }
         .dangdae-banner {
-            border-radius: 1.25rem;
-            padding: 14px 16px;
-            margin-bottom: 12px;
+            border-radius: 1.25rem; padding: 14px 16px; margin-bottom: 12px;
             border: 1px solid rgba(16,185,129,0.35);
             background: linear-gradient(135deg, rgba(6,78,59,0.5) 0%, rgba(5,46,22,0.7) 100%);
             animation: slideUp 0.35s cubic-bezier(0.34,1.2,0.64,1);
@@ -114,16 +113,96 @@
             border-color: rgba(239,68,68,0.35);
             background: linear-gradient(135deg, rgba(127,29,29,0.5) 0%, rgba(69,10,10,0.7) 100%);
         }
+        .dangdae-banner.stop-banner {
+            border-color: rgba(239,68,68,0.4);
+            background: linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(30,10,10,0.7) 100%);
+        }
         @keyframes slideUp {
             from { opacity:0; transform:translateY(10px); }
             to   { opacity:1; transform:translateY(0); }
         }
+        /* Checkbox style */
+        .line-check { accent-color: #3b82f6; width: 16px; height: 16px; }
+        /* Jam grid button */
+        .jam-btn {
+            background: rgba(30,41,59,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 8px 4px;
+            font-size: 11px; font-weight: 800; color: #94a3b8;
+            text-align: center; cursor: pointer; transition: all 0.15s;
+            width: 100%;
+        }
+        .jam-btn:active { transform: scale(0.93); }
+        .jam-btn.selected { background: rgba(239,68,68,0.25); border-color: rgba(239,68,68,0.6); color: #f87171; }
+        .jam-btn.cleared { background: rgba(30,41,59,0.4); color: #475569; }
     </style>
 </head>
 <body class="pt-2">
 
 <!-- TOAST -->
 <div id="toast" class="glass-dark border border-white/10 text-white">OK</div>
+
+<!-- STOP JAM OVERLAY (bottom sheet) -->
+<div id="stopjam-overlay">
+    <div class="stopjam-sheet">
+        <!-- Handle -->
+        <div class="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-5"></div>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <p class="text-[10px] font-black uppercase text-red-400 tracking-widest">⏹ Stop Jam Proses</p>
+                <p class="text-[8px] text-slate-500 font-bold mt-0.5">Tabel berhenti di jam yang dipilih</p>
+            </div>
+            <button onclick="closeStopJam()" class="text-slate-500 text-lg px-2">✕</button>
+        </div>
+
+        <!-- Scope: Semua vs Pilih Line -->
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <button id="sj-btn-all" onclick="stopJamSetScope('all')"
+                class="py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all
+                       bg-blue-600/20 border-blue-500/50 text-blue-300">
+                Semua Line
+            </button>
+            <button id="sj-btn-pick" onclick="stopJamSetScope('pick')"
+                class="py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all
+                       bg-slate-800 border-white/10 text-slate-400">
+                Pilih Line
+            </button>
+        </div>
+
+        <!-- Checkbox pilih line (muncul jika scope = pick) -->
+        <div id="sj-line-picker" class="hidden mb-4 bg-slate-900/60 rounded-2xl p-3">
+            <p class="text-[8px] font-black uppercase text-slate-500 mb-2">Pilih line yang berbeda stop jam:</p>
+            <div class="grid grid-cols-4 gap-2">
+                ${[1,2,3,4].map(i=>`
+                <label class="flex flex-col items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" id="sj-chk-${i}" class="line-check" checked>
+                    <span class="text-[9px] font-black text-slate-300">L-0${i}</span>
+                </label>`).join('')}
+            </div>
+        </div>
+
+        <!-- Grid jam -->
+        <p class="text-[8px] font-black uppercase text-slate-500 mb-2">Pilih jam stop:</p>
+        <div id="sj-jam-grid" class="grid grid-cols-6 gap-1.5 mb-4">
+            <!-- Diisi JS -->
+        </div>
+
+        <!-- Info jam terpilih -->
+        <div id="sj-selected-info" class="text-center text-[9px] font-black text-slate-500 mb-4">Belum ada jam dipilih</div>
+
+        <!-- Tombol -->
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="clearStopJam()"
+                class="py-3 rounded-2xl text-[9px] font-black uppercase border border-red-500/30 text-red-400 bg-red-500/5 active:scale-95 transition-all">
+                Reset Stop
+            </button>
+            <button onclick="applyStopJam()"
+                class="py-3 rounded-2xl text-[9px] font-black uppercase bg-red-600 text-white shadow-lg shadow-red-900/40 active:scale-95 transition-all">
+                Terapkan ✓
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- DANGDAE OVERLAY -->
 <div id="dangdae-overlay">
@@ -160,9 +239,16 @@
             <p id="shift-indicator" class="text-[7px] text-blue-400 font-bold uppercase tracking-widest mt-0.5">—</p>
         </div>
     </div>
-    <div class="text-right">
-        <div id="live-clock" class="text-xs font-mono text-blue-400 font-bold">00:00:00</div>
-        <div class="text-[6px] text-emerald-500 font-black uppercase tracking-widest">CONNECTED</div>
+    <div class="flex items-center gap-3">
+        <button onclick="openStopJam()"
+            class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-400 text-[8px] font-black uppercase px-3 py-2 rounded-xl active:scale-95 transition-all">
+            <span id="stopjam-indicator">⏹</span>
+            <span id="stopjam-label">Stop Jam</span>
+        </button>
+        <div class="text-right">
+            <div id="live-clock" class="text-xs font-mono text-blue-400 font-bold">00:00:00</div>
+            <div class="text-[6px] text-emerald-500 font-black uppercase tracking-widest">CONNECTED</div>
+        </div>
     </div>
 </header>
 
@@ -251,25 +337,25 @@
 </nav>
 
 <script>
-/* ============================================================
-   ZENITH APEX — FIXED VERSION
-   Fix: 1) target editable (pakai onblur, bukan onchange)
-        2) dangdae muncul saat ganti running type
-        3) stok dibagi rata jika tipe sama dipakai 2 line
-============================================================ */
-
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3KnuKUBz65jlfv37oM4azcJrYwtWdOme3kqnEqJQNQGfwXZpeckDukR7a9opEksMhcQ/exec";
 const PCS_PER_PALET = 30;
-const KEY = 'zenith_v4';
+const PCS_PER_HOUR  = 42;
+const PCS_PER_MIN   = 0.7;
+const KEY = 'zenith_v5';
 
 /* ---------- STATE ---------- */
 let inventory = {};
 let lineData = [
-    { id:1, activeType:'', nextType1:'', nextType2:'', color:'blue',   hourlyTargets:{}, forcedDangdae:{} },
-    { id:2, activeType:'', nextType1:'', nextType2:'', color:'cyan',   hourlyTargets:{}, forcedDangdae:{} },
-    { id:3, activeType:'', nextType1:'', nextType2:'', color:'indigo', hourlyTargets:{}, forcedDangdae:{} },
-    { id:4, activeType:'', nextType1:'', nextType2:'', color:'purple', hourlyTargets:{}, forcedDangdae:{} },
+    { id:1, activeType:'', nextType1:'', nextType2:'', color:'blue',   hourlyTargets:{}, forcedDangdae:{}, stopHour: null },
+    { id:2, activeType:'', nextType1:'', nextType2:'', color:'cyan',   hourlyTargets:{}, forcedDangdae:{}, stopHour: null },
+    { id:3, activeType:'', nextType1:'', nextType2:'', color:'indigo', hourlyTargets:{}, forcedDangdae:{}, stopHour: null },
+    { id:4, activeType:'', nextType1:'', nextType2:'', color:'purple', hourlyTargets:{}, forcedDangdae:{}, stopHour: null },
 ];
+
+/* ---------- STOP JAM STATE (temp saat overlay terbuka) ---------- */
+let _sjScope      = 'all';   // 'all' | 'pick'
+let _sjSelectedH  = null;    // jam yang dipilih di overlay
+let _sjChecked    = [true,true,true,true]; // checkbox per line
 
 /* ---------- PERSIST ---------- */
 function save() {
@@ -287,6 +373,7 @@ function load() {
             lineData[i].nextType2     = s.nextType2     || '';
             lineData[i].hourlyTargets  = s.hourlyTargets  || {};
             lineData[i].forcedDangdae  = s.forcedDangdae  || {};
+            lineData[i].stopHour       = s.stopHour ?? null;
         });
     } catch(e){}
 }
@@ -303,18 +390,14 @@ function showToast(msg, err=false) {
     _tt = setTimeout(()=> t.classList.remove('show'), 3000);
 }
 
-/* ---------- DANGDAE ----------
-   Muncul saat user mengganti "Running" ke tipe lain.
-   Tombol "Mengerti" menutupnya.
-*/
+/* ---------- DANGDAE ---------- */
 function triggerDangdae(lineId, fromType, toType) {
     document.getElementById('dd-line').innerText = `LINE  0${lineId}`;
     document.getElementById('dd-from').innerText = fromType || '—';
     document.getElementById('dd-to').innerText   = toType   || '—';
-    // Re-trigger animasi kartu
     const card = document.getElementById('dangdae-card');
     card.classList.remove('pop');
-    void card.offsetWidth; // reflow
+    void card.offsetWidth;
     card.classList.add('pop');
     document.getElementById('dangdae-overlay').classList.add('show');
     if (navigator.vibrate) navigator.vibrate([250,100,250,100,500]);
@@ -323,31 +406,144 @@ function closeDangdae() {
     document.getElementById('dangdae-overlay').classList.remove('show');
 }
 
-/* ---------- STOK EFEKTIF per type per line ----------
-   Jika tipe X dipakai oleh N line sekaligus (slot Running),
-   stok X dibagi rata ke N line tersebut.
-   Untuk Next1/Next2 juga dihitung siapa yang memakai.
-*/
+/* ================================================================
+   STOP JAM PROSES
+================================================================ */
+function openStopJam() {
+    _sjScope = 'all';
+    _sjSelectedH = null;
+    // ambil jam stop dari line pertama yg ada stop
+    const anyStop = lineData.find(l => l.stopHour !== null);
+    if (anyStop) { _sjSelectedH = anyStop.stopHour; }
+
+    // detect scope
+    const stops = lineData.map(l => l.stopHour);
+    const uniq   = [...new Set(stops)];
+    if (uniq.length > 1 || lineData.some((l,i)=> l.stopHour !== lineData[0].stopHour)) {
+        _sjScope = 'pick';
+        _sjChecked = lineData.map(l => l.stopHour !== null);
+    }
+
+    _renderStopJamScope();
+    _renderStopJamGrid();
+    document.getElementById('stopjam-overlay').classList.add('show');
+}
+function closeStopJam() {
+    document.getElementById('stopjam-overlay').classList.remove('show');
+}
+function stopJamSetScope(scope) {
+    _sjScope = scope;
+    _renderStopJamScope();
+}
+function _renderStopJamScope() {
+    const btnAll  = document.getElementById('sj-btn-all');
+    const btnPick = document.getElementById('sj-btn-pick');
+    const picker  = document.getElementById('sj-line-picker');
+    if (_sjScope === 'all') {
+        btnAll.className  = 'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all bg-blue-600/30 border-blue-500/60 text-blue-300';
+        btnPick.className = 'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all bg-slate-800 border-white/10 text-slate-400';
+        picker.classList.add('hidden');
+    } else {
+        btnAll.className  = 'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all bg-slate-800 border-white/10 text-slate-400';
+        btnPick.className = 'py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all bg-purple-600/30 border-purple-500/60 text-purple-300';
+        picker.classList.remove('hidden');
+        // Sync checkboxes
+        [1,2,3,4].forEach((id,i) => {
+            const chk = document.getElementById(`sj-chk-${id}`);
+            if (chk) chk.checked = _sjChecked[i];
+        });
+    }
+}
+function _renderStopJamGrid() {
+    const hours = getShiftHours();
+    const grid  = document.getElementById('sj-jam-grid');
+    grid.innerHTML = hours.map(h => {
+        const label = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
+        const isSel = _sjSelectedH === h;
+        return `<button class="jam-btn${isSel?' selected':''}" onclick="stopJamPickHour(${h})">${label}</button>`;
+    }).join('');
+    _updateStopJamInfo();
+}
+function stopJamPickHour(h) {
+    if (_sjSelectedH === h) { _sjSelectedH = null; }
+    else { _sjSelectedH = h; }
+    _renderStopJamGrid();
+}
+function _updateStopJamInfo() {
+    const el = document.getElementById('sj-selected-info');
+    if (_sjSelectedH === null) {
+        el.innerHTML = '<span class="text-slate-600">Belum ada jam dipilih — tabel penuh</span>';
+    } else {
+        const label = _sjSelectedH===19 ? '19:10' : _sjSelectedH===7 ? '07:10' : `${String(_sjSelectedH).padStart(2,'0')}:00`;
+        el.innerHTML = `<span class="text-red-400">⏹ Stop di jam <strong>${label}</strong></span>`;
+    }
+}
+function applyStopJam() {
+    if (_sjScope === 'all') {
+        lineData.forEach(l => { l.stopHour = _sjSelectedH; });
+    } else {
+        // baca checkbox
+        [1,2,3,4].forEach((id,i) => {
+            const chk = document.getElementById(`sj-chk-${id}`);
+            if (chk && chk.checked) {
+                lineData[i].stopHour = _sjSelectedH;
+            }
+            // line yg tidak dicentang: tidak diubah
+        });
+    }
+    save();
+    updateStopJamHeader();
+    renderAll();
+    closeStopJam();
+    const label = _sjSelectedH !== null
+        ? (_sjSelectedH===19 ? '19:10' : _sjSelectedH===7 ? '07:10' : `${String(_sjSelectedH).padStart(2,'0')}:00`)
+        : 'dihapus';
+    showToast(`Stop jam → ${label}`);
+}
+function clearStopJam() {
+    lineData.forEach(l => { l.stopHour = null; });
+    _sjSelectedH = null;
+    save();
+    updateStopJamHeader();
+    renderAll();
+    closeStopJam();
+    showToast('Stop jam direset');
+}
+function updateStopJamHeader() {
+    const stops   = lineData.map(l => l.stopHour).filter(h => h !== null);
+    const label   = document.getElementById('stopjam-label');
+    const indic   = document.getElementById('stopjam-indicator');
+    if (!stops.length) {
+        label.innerText = 'Stop Jam';
+        indic.innerText = '⏹';
+    } else {
+        const uniqH = [...new Set(stops)];
+        if (uniqH.length === 1) {
+            const h = uniqH[0];
+            const s = h===19?'19:10':h===7?'07:10':`${String(h).padStart(2,'0')}:00`;
+            label.innerText = s;
+        } else {
+            label.innerText = 'Multi';
+        }
+        indic.innerText = '🔴';
+    }
+}
+
+/* ---------- STOK ---------- */
 function getEffectiveStock(typeName, lineId) {
     if (!typeName || !inventory[typeName]) return 0;
     const data = inventory[typeName];
     const keepPcs = data.keepPcs || 0;
     const usable = Math.max(0, data.totalPcs - keepPcs);
-    // Hitung berapa line yang memakai tipe ini sebagai Running
     const usersRunning = lineData.filter(l => l.activeType === typeName).length;
     if (usersRunning >= 2) {
         const myLine = lineData.find(l => l.id === lineId);
-        if (myLine && myLine.activeType === typeName) {
-            return Math.floor(usable / usersRunning);
-        }
+        if (myLine && myLine.activeType === typeName) return Math.floor(usable / usersRunning);
     }
     const runnersCount = lineData.filter(l => l.activeType === typeName).length;
     if (runnersCount >= 2) return Math.floor(usable / runnersCount);
     return usable;
 }
-
-/* Hitung stok antrian (activeType + next1 + next2) untuk satu line,
-   sudah memperhitungkan pembagian jika shared dan dikurangi keep. */
 function getStocksForLine(line) {
     function stockOf(typeName) {
         if (!typeName || !inventory[typeName]) return 0;
@@ -409,8 +605,7 @@ function releaseKeep(name) {
     if (v === null) return;
     const relPalet = parseInt(v);
     if (isNaN(relPalet) || relPalet <= 0) { showToast('Jumlah tidak valid!', true); return; }
-    const relPcs = relPalet * PCS_PER_PALET;
-    const actualRel = Math.min(relPcs, data.keepPcs);
+    const actualRel = Math.min(relPalet * PCS_PER_PALET, data.keepPcs);
     data.keepPcs = Math.max(0, data.keepPcs - actualRel);
     save(); renderAll();
     showToast(`Rilis ${actualRel} pcs dari keep ${name}`);
@@ -451,7 +646,7 @@ function deleteStock(name) {
 function clearAllData() {
     if (!confirm('Hapus semua data produksi?')) return;
     inventory = {};
-    lineData.forEach(l=>{ l.activeType=''; l.nextType1=''; l.nextType2=''; l.hourlyTargets={}; l.forcedDangdae={}; });
+    lineData.forEach(l=>{ l.activeType=''; l.nextType1=''; l.nextType2=''; l.hourlyTargets={}; l.forcedDangdae={}; l.stopHour=null; });
     save(); renderAll();
 }
 
@@ -464,35 +659,24 @@ function showPage(pageId) {
     renderAll();
 }
 
-/* ---------- TYPE SELECTION — dangdae saat ganti Running ---------- */
+/* ---------- TYPE SELECTION ---------- */
 function updateTypeSelection(lineId, slot, newVal) {
     const line = lineData[lineId - 1];
     const oldVal = line[slot];
-
-    /* DANGDAE: hanya saat slot Running berubah ke tipe berbeda */
     if (slot === 'activeType' && oldVal && newVal && oldVal !== newVal) {
         triggerDangdae(lineId, oldVal, newVal);
     }
-
     line[slot] = newVal;
     save();
-
-    /* Re-render HANYA baris selector, bukan seluruh halaman —
-       agar input target yang sedang diedit tidak ikut terhapus.
-       Kita render ulang cukup bagian select saja lewat syncSelects(),
-       tapi karena kita belum di tengah edit target, renderAll aman. */
     renderAll();
 }
 
-/* ---------- TARGET — KUNCI: gunakan onblur, bukan onchange ----------
-   Dengan onblur, user bisa mengetik angka sampai selesai tanpa
-   renderAll() dipanggil di tengah jalan. */
+/* ---------- TARGET ---------- */
 function updateTarget(lineId, hour, val) {
     const n = parseInt(val);
     if (!isNaN(n) && n >= 0) {
         lineData[lineId - 1].hourlyTargets[hour] = n;
         save();
-        /* TIDAK renderAll() — hanya simpan. Nilai sudah tampil di input. */
     }
 }
 
@@ -518,31 +702,27 @@ function renderInventory() {
     c.innerHTML = entries.map(([name, data]) => {
         const users = lineData.filter(l => l.activeType===name||l.nextType1===name||l.nextType2===name)
             .map(l=>`L0${l.id}`).join(', ');
-        const keepPcs  = data.keepPcs || 0;
-        const keepPalet = Math.round(keepPcs / PCS_PER_PALET);
-        const usablePcs = Math.max(0, data.totalPcs - keepPcs);
+        const keepPcs    = data.keepPcs || 0;
+        const keepPalet  = Math.round(keepPcs / PCS_PER_PALET);
+        const usablePcs  = Math.max(0, data.totalPcs - keepPcs);
         const totalPalet = Math.floor(data.totalPcs / PCS_PER_PALET);
-        const usablePalet = Math.floor(usablePcs / PCS_PER_PALET);
-        const hasKeep = keepPcs > 0;
+        const usablePalet= Math.floor(usablePcs / PCS_PER_PALET);
+        const hasKeep    = keepPcs > 0;
         return `
         <div class="inv-card${hasKeep ? ' border border-amber-500/30' : ''}">
             <p class="text-[8px] font-black text-slate-500 uppercase truncate mb-0.5">${name}</p>
             ${users ? `<p class="text-[7px] text-amber-400 font-bold mb-1">▶ ${users}</p>` : '<p class="text-[7px] text-slate-600 mb-1">—</p>'}
-            
-            <!-- Total stok -->
             <div class="flex items-baseline gap-1 mb-1">
                 <p class="text-xl font-black text-blue-400">${usablePcs}</p>
                 <span class="text-[8px] font-bold text-slate-600 uppercase">Pcs</span>
                 <span class="text-[7px] text-slate-600">(${usablePalet} plt)</span>
             </div>
-
-            <!-- Keep badge -->
             ${hasKeep ? `
             <div class="bg-amber-500/10 border border-amber-500/25 rounded-xl px-2 py-1.5 mb-2">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-[7px] font-black uppercase text-amber-400 tracking-wider">🔒 KEEP</p>
-                        <p class="text-[9px] font-black text-amber-300">${keepPalet} Palet <span class="text-[7px] font-bold text-amber-500/70">(${keepPcs} pcs)</span></p>
+                        <p class="text-[10px] font-black text-amber-300">${keepPalet} <span class="text-[8px]">Palet</span> <span class="text-amber-400/70 text-[9px] font-bold">/ ${keepPcs} pcs</span></p>
                     </div>
                     <button onclick="releaseKeep('${name}')"
                         class="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[7px] font-black uppercase px-2 py-1 rounded-lg active:scale-95 transition-all">
@@ -550,10 +730,9 @@ function renderInventory() {
                     </button>
                 </div>
                 <div class="mt-1 pt-1 border-t border-amber-500/15">
-                    <p class="text-[7px] text-slate-500 font-bold">Total gudang: <span class="text-slate-400">${totalPalet} plt (${data.totalPcs} pcs)</span></p>
+                    <p class="text-[7px] text-slate-500 font-bold">Total gudang: <span class="text-slate-400">${totalPalet} plt · ${data.totalPcs} pcs</span></p>
                 </div>
             </div>` : ''}
-
             <div class="flex gap-1.5">
                 <button onclick="editStockPcs('${name}')"
                     class="flex-1 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase py-1.5 rounded-lg active:scale-95 transition-transform">Edit</button>
@@ -566,24 +745,21 @@ function renderInventory() {
     }).join('');
 }
 
-/* ---------- CUTI PAKSA (manual dangdae walaupun stok masih ada) ---------- */
+/* ---------- CUTI PAKSA ---------- */
 function setCutiDangdae(lineId, typeName) {
     const line  = lineData[lineId - 1];
     if (!line.forcedDangdae) line.forcedDangdae = {};
     const hours = getShiftHours();
     const nowH  = new Date().getHours();
-
-    // Buat daftar jam yang bisa dipilih (jam berikutnya sampai akhir shift)
     const available = hours.filter(h => h !== nowH);
     const opts = available.map(h => {
         const label = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
         return `${h} → ${label}`;
     }).join('\n');
-
-    const defaultH = nowH + 1 <= hours[hours.length-1] ? nowH + 1 : hours[1] || hours[0];
+    const defaultH = available[0] || hours[0];
     const curSetting = line.forcedDangdae[typeName];
     const v = prompt(
-        `Atur jam CUT untuk ${typeName} (Line 0${lineId}):\n\nPilih jam mulai cut:\n${opts}\n\n(Ketik angka jamnya, contoh: 14 untuk jam 14:00)`,
+        `Atur jam CUT untuk ${typeName} (Line 0${lineId}):\n\nJam tersedia:\n${opts}\n\n(Ketik angka jam)`,
         curSetting !== undefined ? curSetting : defaultH
     );
     if (v === null) return;
@@ -591,7 +767,7 @@ function setCutiDangdae(lineId, typeName) {
     if (isNaN(h) || !hours.includes(h)) { showToast('Jam tidak valid!', true); return; }
     line.forcedDangdae[typeName] = h;
     save(); renderAll();
-    const label = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
+    const label = h===19?'19:10':h===7?'07:10':`${String(h).padStart(2,'0')}:00`;
     showToast(`Cut ${typeName} → jam ${label}`);
 }
 function clearCuti(lineId, typeName) {
@@ -601,25 +777,22 @@ function clearCuti(lineId, typeName) {
     showToast(`Cuti ${typeName} dibatalkan`);
 }
 
-/* ---------- HITUNG ESTIMASI DANGDAE ----------
-   Logika:
-   - Jam dangdae = jam stok tipe aktif HABIS (jam berikutnya setelah stok = 0)
-   - Jika ada cuti paksa (forcedDangdae), dangdae dipaksa di jam tersebut
-   - Sisa stok tipe yg dicuti dibebaskan (dialihkan ke line lain / dilepas)
-   Return array of { fromType, toType, hour, timeStr, sisa, isCuti }
-*/
+/* =================================================================
+   HITUNG ESTIMASI DANGDAE + ACTUAL HABIS
+   Rumus: 1 jam = 42 pcs, 1 menit = 0.7 pcs
+   actual habis = jam habis + sisa menit dari sisa stok
+=================================================================*/
 function calcDangdaeEstimate(line) {
     if (!line.activeType) return [];
 
-    const hours     = getShiftHours();
+    const hours     = getShiftHours(line);
     const forced    = line.forcedDangdae || {};
     const typeQueue = [line.activeType, line.nextType1, line.nextType2].filter(Boolean);
-    // Deep-copy stok per tipe untuk simulasi
     const stockMap  = {};
     getStocksForLine(line).forEach(s => { if (s.type) stockMap[s.type] = s.amount; });
 
     const events = [];
-    let qi = 0; // index ke typeQueue yang sedang jalan
+    let qi = 0;
 
     for (let hi = 0; hi < hours.length; hi++) {
         if (qi >= typeQueue.length) break;
@@ -628,14 +801,16 @@ function calcDangdaeEstimate(line) {
         const target  = line.hourlyTargets[h] !== undefined ? line.hourlyTargets[h] : getDefaultTarget(h);
         const timeStr = h === 19 ? '19:10' : h === 7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
 
-        // --- CUTI PAKSA ---
+        // CUTI PAKSA
         if (forced[curType] !== undefined && h >= forced[curType]) {
             const nextType = typeQueue[qi + 1] || 'HABIS';
             const sisa     = stockMap[curType] || 0;
-            events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa, isCuti: true });
-            stockMap[curType] = 0; // sisa dibebaskan
+            // actual habis: sisa stok bisa dipakai berapa menit lebih?
+            const extraMin  = Math.floor(sisa / PCS_PER_MIN);
+            const actualStr = fmtActual(h, 0, extraMin);
+            events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa, isCuti: true, actualStr });
+            stockMap[curType] = 0;
             qi++;
-            // Konsumsi jam ini dari tipe berikutnya
             if (qi < typeQueue.length) {
                 const nt = typeQueue[qi];
                 stockMap[nt] = Math.max(0, (stockMap[nt] || 0) - target);
@@ -645,12 +820,12 @@ function calcDangdaeEstimate(line) {
 
         const curStok = stockMap[curType] || 0;
 
-        // --- STOK SUDAH 0 SEBELUM JAM INI ---
+        // STOK 0 SEBELUM JAM INI
         if (curStok <= 0) {
             const nextType = typeQueue[qi + 1] || 'HABIS';
-            // Hindari duplikat event
             if (!events.length || events[events.length-1].fromType !== curType) {
-                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false });
+                const actualStr = fmtActual(h, 0, 0);
+                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false, actualStr });
             }
             qi++;
             if (qi < typeQueue.length) {
@@ -660,19 +835,26 @@ function calcDangdaeEstimate(line) {
             continue;
         }
 
-        // --- KONSUMSI NORMAL ---
+        // KONSUMSI NORMAL
         const taken = Math.min(curStok, target);
         stockMap[curType] = curStok - taken;
 
-        // Jika stok habis TEPAT jam ini → dangdae mulai jam berikutnya
         if (stockMap[curType] === 0) {
             const nextH    = hours[hi + 1];
             const nextType = typeQueue[qi + 1] || 'HABIS';
+            // actual: stok habis tepat target → habis di akhir jam ini, tidak ada sisa menit
+            // tapi kita hitung lebih presisi: stok = taken → habis tepat target jam ini
+            // dangdae muncul di jam berikutnya, tapi actual habis = jam ini + menit dari sisa taken
+            // taken === curStok berarti habis di jam ini
+            // Sisa stok setelah dikurangi = 0 → habis di tengah jam ini
+            // presisi: menit habis = floor(curStok / PCS_PER_MIN) dari awal jam h
+            const minIntoH  = Math.floor(curStok / PCS_PER_MIN);
+            const actualStr = fmtActual(h, minIntoH, 0);
             if (nextH !== undefined) {
-                const nStr = nextH === 19 ? '19:10' : nextH === 7 ? '07:10' : `${String(nextH).padStart(2,'0')}:00`;
-                events.push({ fromType: curType, toType: nextType, hour: nextH, timeStr: nStr, sisa: 0, isCuti: false });
+                const nStr = nextH===19?'19:10':nextH===7?'07:10':`${String(nextH).padStart(2,'0')}:00`;
+                events.push({ fromType: curType, toType: nextType, hour: nextH, timeStr: nStr, sisa: 0, isCuti: false, actualStr });
             } else {
-                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false });
+                events.push({ fromType: curType, toType: nextType, hour: h, timeStr, sisa: 0, isCuti: false, actualStr });
             }
             qi++;
         }
@@ -680,19 +862,61 @@ function calcDangdaeEstimate(line) {
     return events;
 }
 
+/* Format waktu actual habis: jam h + menit offset */
+function fmtActual(h, minOffset, extraMin) {
+    const totalMin = minOffset + extraMin;
+    const baseMin  = h * 60 + totalMin;
+    const rH = Math.floor(baseMin / 60) % 24;
+    const rM = baseMin % 60;
+    return `${String(rH).padStart(2,'0')}:${String(rM).padStart(2,'0')}`;
+}
+
+/* getShiftHours untuk satu line, mempertimbangkan stopHour */
+function getShiftHours(line) {
+    const h = new Date().getHours(), m = new Date().getMinutes();
+    const allHours = ((h>=8&&h<19)||(h===19&&m<=10))
+        ? [8,9,10,11,12,13,14,15,16,17,18,19]
+        : [20,21,22,23,0,1,2,3,4,5,6,7];
+
+    if (!line || line.stopHour === null || line.stopHour === undefined) return allHours;
+
+    const stop = line.stopHour;
+    const idx  = allHours.indexOf(stop);
+    if (idx === -1) return allHours;
+    return allHours.slice(0, idx + 1); // termasuk jam stop itu sendiri
+}
+
 /* ---------- BUILD DANGDAE BANNERS ---------- */
 function buildDangdaeBanners(line) {
     if (!line.activeType) return '';
+    const events  = calcDangdaeEstimate(line);
+    const nowH    = new Date().getHours();
+    const forced  = line.forcedDangdae || {};
+    const stopH   = line.stopHour;
 
-    const events = calcDangdaeEstimate(line);
-    const nowH   = new Date().getHours();
-    const forced = line.forcedDangdae || {};
+    let banners = '';
 
-    // Banner "Stok Aman" jika tidak ada pergantian sama sekali
+    // Banner Stop Jam jika ada
+    if (stopH !== null && stopH !== undefined) {
+        const sl = stopH===19?'19:10':stopH===7?'07:10':`${String(stopH).padStart(2,'0')}:00`;
+        banners += `
+        <div class="dangdae-banner stop-banner mb-3">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">⏹</span>
+                <div>
+                    <p class="text-[9px] font-black uppercase text-red-400 tracking-widest">Stop Proses</p>
+                    <p class="text-[8px] text-red-300/70 font-bold mt-0.5">Tabel berhenti jam <strong>${sl}</strong></p>
+                </div>
+                <button onclick="openStopJam()" class="ml-auto shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-[7px] font-black uppercase px-2 py-1 rounded-lg active:scale-95">
+                    Edit
+                </button>
+            </div>
+        </div>`;
+    }
+
+    // Banner Stok Aman
     if (!events.length) {
-        const totalStok = getStocksForLine(line).reduce((s,x)=>s+x.amount,0);
-        const hasNext   = line.nextType1 || line.nextType2;
-        return `
+        banners += `
         <div class="dangdae-banner mb-4">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
@@ -702,23 +926,24 @@ function buildDangdaeBanners(line) {
                         <p class="text-[8px] text-emerald-300/70 font-bold mt-0.5">${line.activeType} cukup sepanjang shift</p>
                     </div>
                 </div>
-        ${line.nextType1 ? `
+                ${line.nextType1 ? `
                 <button onclick="setCutiDangdae(${line.id},'${line.activeType}')"
                     class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all">
                     ⏱ Set Cut
                 </button>` : ''}
             </div>
         </div>`;
+        return banners;
     }
 
-    return events.map((ev) => {
-        const isPast   = ev.hour < nowH;
-        const isHabis  = ev.toType === 'HABIS';
-        const isCuti   = ev.isCuti;
+    banners += events.map((ev) => {
+        const isPast  = ev.hour < nowH;
+        const isHabis = ev.toType === 'HABIS';
+        const isCuti  = ev.isCuti;
 
         const bannerCls = isHabis ? 'empty' : isPast ? '' : isCuti ? 'warn' : '';
         const icon      = isHabis ? '🔴' : isPast ? '🔵' : isCuti ? '⏭️' : '🟢';
-        const lColor    = isHabis ? 'text-red-400'    : isPast ? 'text-blue-400'   : isCuti ? 'text-amber-400' : 'text-emerald-400';
+        const lColor    = isHabis ? 'text-red-400' : isPast ? 'text-blue-400' : isCuti ? 'text-amber-400' : 'text-emerald-400';
         const tag       = isPast ? 'Sudah Dangdae' : isCuti ? 'Cuti Paksa' : 'Dangdae';
 
         const fromBadge = `<span class="inline-block bg-slate-700 text-slate-100 text-[9px] font-black px-2 py-0.5 rounded-lg">${ev.fromType}</span>`;
@@ -730,7 +955,14 @@ function buildDangdaeBanners(line) {
             ? `<span class="text-[7px] text-amber-400 font-bold ml-1">(sisa ${ev.sisa} pcs dialihkan)</span>`
             : '';
 
-        // Tombol Cuti hanya muncul jika belum cuti, belum past, bukan habis, ada next
+        // Actual habis badge
+        const actualBadge = ev.actualStr
+            ? `<div class="mt-1.5 flex items-center gap-1.5">
+                <span class="text-[7px] font-black uppercase text-slate-500">Actual Habis:</span>
+                <span class="bg-rose-900/50 border border-rose-700/40 text-rose-300 text-[9px] font-black px-2 py-0.5 rounded-lg">⏱ ${ev.actualStr}</span>
+               </div>`
+            : '';
+
         const cutiBtn = (!isPast && !isHabis && !isCuti && ev.toType !== 'HABIS')
             ? `<button onclick="setCutiDangdae(${line.id},'${ev.fromType}')"
                 class="shrink-0 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8px] font-black uppercase px-2.5 py-1.5 rounded-xl active:scale-95 transition-all whitespace-nowrap">
@@ -740,7 +972,7 @@ function buildDangdaeBanners(line) {
                 ? `<div class="flex flex-col gap-1">
                     <button onclick="setCutiDangdae(${line.id},'${ev.fromType}')"
                         class="shrink-0 bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[8px] font-black uppercase px-2.5 py-1 rounded-lg active:scale-95 transition-all">
-                        ✏️ Edit Jam
+                        ✏️ Edit
                     </button>
                     <button onclick="clearCuti(${line.id},'${ev.fromType}')"
                         class="shrink-0 bg-red-500/10 border border-red-500/30 text-red-400 text-[8px] font-black uppercase px-2.5 py-1 rounded-lg active:scale-95 transition-all">
@@ -766,49 +998,52 @@ function buildDangdaeBanners(line) {
                             </svg>
                             ${toBadge}${sisaNote}
                         </div>
+                        ${actualBadge}
                     </div>
                 </div>
                 ${cutiBtn}
             </div>
         </div>`;
     }).join('');
+
+    return banners;
 }
 
-/* ---------- RENDER LINES ----------
-   PENTING: kita cek apakah target-input sedang difokus sebelum render ulang.
-   Jika YA, skip renderLines agar ketikan tidak hilang. */
+/* ---------- IS EDITING TARGET ---------- */
 function isEditingTarget() {
     const el = document.activeElement;
     return el && el.classList.contains('target-inp');
 }
 
+/* ---------- RENDER LINES ---------- */
 function renderLines() {
-    if (isEditingTarget()) return; /* jangan ganggu saat user edit target */
-
+    if (isEditingTarget()) return;
     const colors = {
         blue:   { badge:'bg-blue-600',   border:'border-blue-500'   },
         cyan:   { badge:'bg-cyan-600',    border:'border-cyan-500'   },
         indigo: { badge:'bg-indigo-600',  border:'border-indigo-500' },
         purple: { badge:'bg-purple-600',  border:'border-purple-500' },
     };
-
     lineData.forEach(line => {
         const cont = document.getElementById(`page-line-${line.id}`);
         if (!cont) return;
         const c = colors[line.color];
         const types = Object.keys(inventory);
         const mkOpts = (sel) => types.map(t=>`<option value="${t}"${t===sel?' selected':''}>${t}</option>`).join('');
+        const stopH  = line.stopHour;
+        const stopLabel = stopH !== null && stopH !== undefined
+            ? (stopH===19?'19:10':stopH===7?'07:10':`${String(stopH).padStart(2,'0')}:00`)
+            : null;
 
         cont.innerHTML = `
         <div class="glass p-5 rounded-[2.5rem] border-b-4 ${c.border} shadow-xl mb-4">
-
-            <!-- Header -->
             <div class="flex items-center justify-between mb-5">
                 <span class="${c.badge} text-white text-[9px] font-black px-5 py-2 rounded-full uppercase tracking-widest italic">Line 0${line.id}</span>
-                <span class="text-[8px] font-bold text-slate-500">● Live</span>
+                <div class="flex items-center gap-2">
+                    ${stopLabel ? `<span class="bg-red-500/15 border border-red-500/30 text-red-400 text-[7px] font-black px-2 py-1 rounded-lg">⏹ ${stopLabel}</span>` : ''}
+                    <span class="text-[8px] font-bold text-slate-500">● Live</span>
+                </div>
             </div>
-
-            <!-- Type selectors -->
             <div class="grid grid-cols-3 gap-2 mb-5">
                 ${[
                     {label:'Running', slot:'activeType', val:line.activeType, bcolor:'rgba(59,130,246,0.5)'},
@@ -823,8 +1058,6 @@ function renderLines() {
                     </select>
                 </div>`).join('')}
             </div>
-
-            <!-- Info bagi stok -->
             ${(()=>{
                 const shared = [line.activeType, line.nextType1, line.nextType2]
                     .filter(Boolean)
@@ -835,8 +1068,6 @@ function renderLines() {
                        </div>`
                     : '';
             })()}
-
-            <!-- Tabel -->
             <div class="bg-black/40 rounded-3xl overflow-hidden">
                 <table class="w-full">
                     <thead class="bg-slate-900 text-[8px] text-slate-500 uppercase font-black">
@@ -855,35 +1086,32 @@ function renderLines() {
     });
 }
 
-/* ---------- BUILD ROWS — inti kalkulasi ---------- */
+/* ---------- BUILD ROWS ---------- */
 function buildRows(line) {
     if (!line.activeType)
         return '<tr><td colspan="4" class="py-10 text-center text-slate-600 text-[9px] uppercase">Pilih Tipe Velg</td></tr>';
 
-    const hours = getShiftHours();
-    const nowH  = new Date().getHours();
+    const hours  = getShiftHours(line);  // sudah di-clip stop hour
+    const allH   = getShiftHours();       // jam full shift (tanpa stop)
+    const nowH   = new Date().getHours();
+    const stopH  = line.stopHour;
 
-    /* Salin stok awal (sudah dibagi jika shared) */
     let stocks = getStocksForLine(line).map(s => ({ ...s }));
-
-    /* Tipe aktif saat ini di jam running — untuk deteksi switch */
     let prevType = line.activeType;
 
-    return hours.map(h => {
+    let rows = hours.map(h => {
         const target  = line.hourlyTargets[h] !== undefined ? line.hourlyTargets[h] : getDefaultTarget(h);
         const timeStr = h===19 ? '19:10' : h===7 ? '07:10' : `${String(h).padStart(2,'0')}:00`;
         const isNow   = h === nowH;
+        const isStop  = stopH !== null && stopH !== undefined && h === stopH;
 
-        /* Stok sebelum jam ini dikonsumsi */
         const totalBefore = stocks.reduce((s,x)=>s+x.amount, 0);
 
-        /* Tentukan tipe aktif di jam ini (yang pertama punya stok) */
         let activeTypeThisHour = 'HABIS';
         for (const s of stocks) {
             if (s.amount > 0 && s.type) { activeTypeThisHour = s.type; break; }
         }
 
-        /* Kurangi stok sesuai target */
         let needed = target;
         for (const s of stocks) {
             if (s.amount > 0 && s.type) {
@@ -894,39 +1122,48 @@ function buildRows(line) {
             }
         }
 
-        const bal = Math.max(0, totalBefore - target);
+        const bal      = Math.max(0, totalBefore - target);
         const isSwitch = activeTypeThisHour !== prevType && activeTypeThisHour !== 'HABIS';
-        prevType = activeTypeThisHour !== 'HABIS' ? activeTypeThisHour : prevType;
+        prevType       = activeTypeThisHour !== 'HABIS' ? activeTypeThisHour : prevType;
 
-        /* Warna tipe */
         const typeClr = activeTypeThisHour === line.activeType ? 'text-blue-400'
                       : activeTypeThisHour === line.nextType1  ? 'text-amber-400'
                       : activeTypeThisHour === line.nextType2  ? 'text-purple-400'
                       : 'text-red-500';
 
-        const rowCls = isNow ? 'row-now' : isSwitch ? 'row-switch' : '';
+        const rowCls = isNow ? 'row-now' : isStop ? 'row-stop' : isSwitch ? 'row-switch' : '';
 
         return `
         <tr class="border-b border-white/5 ${rowCls}">
             <td class="p-3 font-mono text-slate-400">
                 ${timeStr}${isNow ? ' <span class="text-blue-400 font-black">▶</span>' : ''}
                 ${isSwitch ? ' <span class="text-amber-400 text-[8px]">↕</span>' : ''}
+                ${isStop   ? ' <span class="text-red-400 text-[8px] font-black">⏹</span>' : ''}
             </td>
             <td class="p-3 text-center">
                 <div class="text-white">${totalBefore}</div>
                 <div class="text-[7px] font-black uppercase ${typeClr}">${activeTypeThisHour}</div>
             </td>
             <td class="p-3 text-center">
-                <input type="number"
-                    class="target-inp"
-                    value="${target}"
-                    min="0" max="999"
+                <input type="number" class="target-inp" value="${target}" min="0" max="999"
                     onclick="this.select()"
                     onblur="updateTarget(${line.id}, ${h}, this.value)">
             </td>
             <td class="p-3 text-right font-black ${totalBefore < target ? 'text-red-500' : 'text-emerald-400'}">${bal}</td>
         </tr>`;
     }).join('');
+
+    // Baris "Proses Berhenti" di akhir jika ada stop hour
+    if (stopH !== null && stopH !== undefined && allH.indexOf(stopH) < allH.length - 1) {
+        rows += `
+        <tr class="border-t-2 border-red-500/30">
+            <td colspan="4" class="p-3 text-center">
+                <span class="text-[8px] font-black uppercase text-red-400 tracking-widest">⏹ Proses Berhenti</span>
+            </td>
+        </tr>`;
+    }
+
+    return rows;
 }
 
 /* ---------- RENDER ALL ---------- */
@@ -949,6 +1186,7 @@ window.onload = () => {
     load();
     updateClock();
     setInterval(updateClock, 1000);
+    updateStopJamHeader();
     renderAll();
 };
 </script>
